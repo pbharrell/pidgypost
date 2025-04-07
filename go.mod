@@ -3,6 +3,11 @@ module github.com/pbharrell/pidgypost
 go 1.23.6
 
 require (
+	github.com/pbharrell/pidgypost/msg v0.0.0-20250407013042-40a2f7249703
+	github.com/pbharrell/pidgypost/tui v0.0.0-20250407013042-40a2f7249703
+)
+
+require (
 	github.com/aymanbagabas/go-osc52/v2 v2.0.1 // indirect
 	github.com/charmbracelet/bubbletea v1.3.4 // indirect
 	github.com/charmbracelet/lipgloss v1.0.0 // indirect

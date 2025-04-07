@@ -6,5 +6,7 @@ import (
 )
 
 func main() {
+	msg.NewMessage("MESSAGE")
+
 	tui.Start()
 }
