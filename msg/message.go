@@ -1,7 +1,7 @@
 package pidgypost
 
 type Metadata struct {
-	Sender string
+	SentFromClient bool
 }
 
 type Message struct {
@@ -9,18 +9,14 @@ type Message struct {
 	metadata Metadata
 }
 
-func NewMessage(contents string) *Message {
-	return &Message{contents: contents, metadata: Metadata{""}}
+func NewSentMessage(contents string) *Message {
+	return &Message{contents: contents, metadata: Metadata{true}}
 }
 
-func (message *Message) SetSender(sender string) {
-	message.metadata.Sender = sender
+func NewReceivedMessage(contents string) *Message {
+	return &Message{contents: contents, metadata: Metadata{false}}
 }
 
 func (message *Message) Contents() (contents string) {
 	return message.contents
-}
-
-func (message *Message) Sender() (sender string) {
-	return message.metadata.Sender
 }
