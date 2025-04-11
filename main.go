@@ -6,7 +6,8 @@ import (
 )
 
 func main() {
-	msg.NewMessage("MESSAGE")
+	msg.NewSentMessage("SENT MESSAGE")
+	msg.NewReceivedMessage("RECEIVED MESSAGE")
 
 	tui.Start()
 }

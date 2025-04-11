@@ -20,3 +20,7 @@ func NewReceivedMessage(contents string) *Message {
 func (message *Message) Contents() (contents string) {
 	return message.contents
 }
+
+func (message *Message) Metadata() (metadata Metadata) {
+	return message.metadata
+}
