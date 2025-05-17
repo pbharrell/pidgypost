@@ -54,10 +54,10 @@ func initialModel() model {
 
 	// Setup list
 	delegate := newListItemDelegate(delegateKeys)
-	groceryList := list.New(items, delegate, 0, 0)
-	groceryList.Title = "Groceries"
-	groceryList.Styles.Title = titleStyle
-	groceryList.AdditionalFullHelpKeys = func() []key.Binding {
+	contactList := list.New(items, delegate, 0, 0)
+	contactList.Title = "Contacts"
+	contactList.Styles.Title = titleStyle
+	contactList.AdditionalFullHelpKeys = func() []key.Binding {
 		return []key.Binding{
 			listKeys.toggleSpinner,
 			listKeys.insertItem,
@@ -91,7 +91,7 @@ Type a message and press Enter to send.`)
 	ta.KeyMap.InsertNewline.SetEnabled(false)
 
 	return model{
-		list:         groceryList,
+		list:         contactList,
 		listKeys:     listKeys,
 		delegateKeys: delegateKeys,
 		textarea:     ta,
@@ -119,7 +119,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 		m.viewport.Width = chatWidth
 		m.textarea.SetWidth(chatWidth)
-		m.viewport.Height = msg.Height - m.textarea.Height() - lipgloss.Height(gap)
+		m.viewport.Height = msg.Height - m.textarea.Height() - 1 // - lipgloss.Height(gap)
 
 		if len(m.messages) > 0 {
 			// Wrap content before setting it.
@@ -139,7 +139,6 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		selected := m.Selected()
 		if selected == emptyContact {
 			// Prevent sending the keymsgs to the individual components if selected
-			logger.Println("Made it to non-selected key handlers. Selected: ", selected.Title())
 			switch {
 			case key.Matches(msg, m.listKeys.toggleSpinner):
 				cmd := m.list.ToggleSpinner()
@@ -172,24 +171,38 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				return m, tea.Batch(insCmd, statusCmd)
 
 			}
+
+			newListModel, cmd := m.list.Update(msg)
+			// This will also call our delegate's update function.
+			m.list = newListModel
+			cmds = append(cmds, cmd)
+
 		} else {
-			logger.Println("Made it to selected key handlers. Selected: ", selected.Title())
 			switch {
 			case key.Matches(msg, m.listKeys.clearSelection):
 				return m.ClearSelection(), nil
 			}
+
+			newViewport, vpCmd := m.viewport.Update(msg)
+			m.viewport = newViewport
+
+			newTextarea, taCmd := m.textarea.Update(msg)
+			m.textarea = newTextarea
+			cmds = append(cmds, vpCmd, taCmd)
 		}
 	}
-
-	// This will also call our delegate's update function.
-	newListModel, cmd := m.list.Update(msg)
-	m.list = newListModel
-	cmds = append(cmds, cmd)
 
 	return m, tea.Batch(cmds...)
 }
 
 func (m model) View() string {
+	// return fmt.Sprintf(
+	// 	"%s%s%s",
+	// 	m.viewport.View(),
+	// 	gap,
+	// 	m.textarea.View(),
+	// )
+
 	// Get total width, divide it evenly
 	listWidth := m.list.Width()
 	chatWidth := m.viewport.Width
@@ -202,7 +215,7 @@ func (m model) View() string {
 	chatPanel := lipgloss.JoinVertical(
 		lipgloss.Top,
 		m.viewport.View(),
-		gap,
+		// gap,
 		m.textarea.View(),
 	)
 
@@ -212,18 +225,19 @@ func (m model) View() string {
 		chatStyle.Render(chatPanel),
 	)
 
-	selected := m.Selected()
-	logger.Println("in view, selected: ", selected.Title())
-	if selected == emptyContact {
-		return lipgloss.JoinVertical(lipgloss.Top, appStyle.Render(ui), lipgloss.NewStyle().Foreground(lipgloss.Color("#888")).Render("No selection :("))
-	} else {
-		return lipgloss.JoinVertical(lipgloss.Top, appStyle.Render(ui), selected.Title())
-	}
+	// selected := m.Selected()
+	// if selected == emptyContact {
+	// 	return lipgloss.JoinVertical(lipgloss.Top, appStyle.Render(ui), lipgloss.NewStyle().Foreground(lipgloss.Color("#888")).Render("No selection :("))
+	// } else {
+	// 	return lipgloss.JoinVertical(lipgloss.Top, appStyle.Render(ui), selected.Title())
+	// }
+
+	// return lipgloss.JoinVertical(lipgloss.Top, appStyle.Render(ui), lipgloss.NewStyle().Foreground(lipgloss.Color("#888")).Render("No selection :("))
+	return lipgloss.JoinVertical(lipgloss.Top, appStyle.Render(ui))
 }
 
 func (m model) Select(c contact) model {
 	m.selected = c
-	logger.Println("Contact with name", m.selected.Title(), "selected")
 	return m
 }
 

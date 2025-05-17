@@ -69,7 +69,6 @@ func Update(keys *listItemDelegateKeyMap, msg tea.Msg, m *list.Model) tea.Cmd {
 			}
 
 		case key.Matches(msg, keys.remove):
-			logger.Println("Something was removed")
 			index := m.Index()
 			m.RemoveItem(index)
 			if len(m.Items()) == 0 {
@@ -107,42 +106,4 @@ func newListItemDelegate(keys *listItemDelegateKeyMap) list.DefaultDelegate {
 	}
 
 	return d
-}
-
-type listItemDelegateKeyMap struct {
-	choose key.Binding
-	remove key.Binding
-}
-
-// Additional short help entries. This satisfies the help.KeyMap interface and
-// is entirely optional.
-func (d listItemDelegateKeyMap) ShortHelp() []key.Binding {
-	return []key.Binding{
-		d.choose,
-		d.remove,
-	}
-}
-
-// Additional full help entries. This satisfies the help.KeyMap interface and
-// is entirely optional.
-func (d listItemDelegateKeyMap) FullHelp() [][]key.Binding {
-	return [][]key.Binding{
-		{
-			d.choose,
-			d.remove,
-		},
-	}
-}
-
-func newListItemDelegateKeyMap() *listItemDelegateKeyMap {
-	return &listItemDelegateKeyMap{
-		choose: key.NewBinding(
-			key.WithKeys("enter"),
-			key.WithHelp("enter", "choose"),
-		),
-		remove: key.NewBinding(
-			key.WithKeys("x", "backspace"),
-			key.WithHelp("x", "delete"),
-		),
-	}
 }

@@ -12,6 +12,11 @@ type listKeyMap struct {
 	clearSelection   key.Binding
 }
 
+type listItemDelegateKeyMap struct {
+	choose key.Binding
+	remove key.Binding
+}
+
 func newListKeyMap() *listKeyMap {
 	return &listKeyMap{
 		insertItem: key.NewBinding(
@@ -19,8 +24,8 @@ func newListKeyMap() *listKeyMap {
 			key.WithHelp("a", "add item"),
 		),
 		clearSelection: key.NewBinding(
-			key.WithKeys("c"),
-			key.WithHelp("c", "clear selection"),
+			key.WithKeys("esc"),
+			key.WithHelp("esc", "clear selection"),
 		),
 		toggleSpinner: key.NewBinding(
 			key.WithKeys("s"),
@@ -42,5 +47,38 @@ func newListKeyMap() *listKeyMap {
 			key.WithKeys("H"),
 			key.WithHelp("H", "toggle help"),
 		),
+	}
+}
+
+func newListItemDelegateKeyMap() *listItemDelegateKeyMap {
+	return &listItemDelegateKeyMap{
+		choose: key.NewBinding(
+			key.WithKeys("enter"),
+			key.WithHelp("enter", "choose"),
+		),
+		remove: key.NewBinding(
+			key.WithKeys("x", "backspace"),
+			key.WithHelp("x", "delete"),
+		),
+	}
+}
+
+// Additional short help entries. This satisfies the help.KeyMap interface and
+// is entirely optional.
+func (d listItemDelegateKeyMap) ShortHelp() []key.Binding {
+	return []key.Binding{
+		d.choose,
+		d.remove,
+	}
+}
+
+// Additional full help entries. This satisfies the help.KeyMap interface and
+// is entirely optional.
+func (d listItemDelegateKeyMap) FullHelp() [][]key.Binding {
+	return [][]key.Binding{
+		{
+			d.choose,
+			d.remove,
+		},
 	}
 }
