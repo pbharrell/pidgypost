@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"os"
 	"strconv"
-	"strings"
 
 	"github.com/charmbracelet/bubbles/key"
 	"github.com/charmbracelet/bubbles/list"
@@ -20,18 +19,35 @@ type (
 	errMsg error
 )
 
-var emptyContact = contact{}
+var (
+	emptyContact = contact{}
 
-type mode struct {
+	bubbleStyle = lipgloss.NewStyle().
+			Border(lipgloss.RoundedBorder()).
+			Padding(0, 1).
+			Margin(1, 0)
+)
+
+type MessageType int
+
+const (
+	Outgoing MessageType = iota
+	Incoming
+)
+
+type cachedMessage struct {
+	Content     string
+	MessageType MessageType
 }
 
 type model struct {
 	list         list.Model
 	listKeys     *listKeyMap
 	delegateKeys *listItemDelegateKeyMap
+	chatKeys     *chatKeyMap
 
 	viewport    viewport.Model
-	messages    []string
+	messages    []cachedMessage
 	textarea    textarea.Model
 	senderStyle lipgloss.Style
 	err         error
@@ -43,6 +59,7 @@ func initialModel() model {
 	var (
 		delegateKeys = newListItemDelegateKeyMap()
 		listKeys     = newListKeyMap()
+		chatKeys     = newChatKeyMap()
 	)
 
 	// FIXME: Load contacts from database
@@ -55,48 +72,27 @@ func initialModel() model {
 	// Setup list
 	delegate := newListItemDelegate(delegateKeys)
 	contactList := list.New(items, delegate, 0, 0)
+	contactList.SetShowStatusBar(false)
+	contactList.SetShowTitle(false)
 	contactList.Title = "Contacts"
 	contactList.Styles.Title = titleStyle
 	contactList.AdditionalFullHelpKeys = func() []key.Binding {
 		return []key.Binding{
-			listKeys.toggleSpinner,
 			listKeys.insertItem,
 			listKeys.clearSelection,
-			listKeys.toggleTitleBar,
-			listKeys.toggleStatusBar,
 			listKeys.togglePagination,
 			listKeys.toggleHelpMenu,
 		}
 	}
 
-	ta := textarea.New()
-	ta.Placeholder = "Send a message..."
-	ta.Focus()
-
-	ta.Prompt = "┃ "
-	ta.CharLimit = 280
-
-	ta.SetWidth(30)
-	ta.SetHeight(3)
-
-	// Remove cursor line styling
-	ta.FocusedStyle.CursorLine = lipgloss.NewStyle()
-
-	ta.ShowLineNumbers = false
-
-	vp := viewport.New(30, 5)
-	vp.SetContent(`Welcome to the chat room!
-Type a message and press Enter to send.`)
-
-	ta.KeyMap.InsertNewline.SetEnabled(false)
-
 	return model{
 		list:         contactList,
 		listKeys:     listKeys,
 		delegateKeys: delegateKeys,
-		textarea:     ta,
-		messages:     []string{},
-		viewport:     vp,
+		chatKeys:     chatKeys,
+		textarea:     initialTextArea(),
+		messages:     []cachedMessage{},
+		viewport:     initialViewport(),
 		senderStyle:  lipgloss.NewStyle().Foreground(lipgloss.Color("5")),
 		err:          nil,
 	}
@@ -121,10 +117,10 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.textarea.SetWidth(chatWidth)
 		m.viewport.Height = msg.Height - m.textarea.Height() - 1 // - lipgloss.Height(gap)
 
-		if len(m.messages) > 0 {
-			// Wrap content before setting it.
-			m.viewport.SetContent(lipgloss.NewStyle().Width(m.viewport.Width).Render(strings.Join(m.messages, "\n")))
-		}
+		// if len(m.messages) > 0 {
+		// Wrap content before setting it.
+		// m.viewport.SetContent(lipgloss.NewStyle().Width(m.viewport.Width).Render(strings.Join(m.messages, "\n")))
+		// }
 		m.viewport.GotoBottom()
 
 	case contactChosenMsg:
@@ -138,22 +134,8 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 		selected := m.Selected()
 		if selected == emptyContact {
-			// Prevent sending the keymsgs to the individual components if selected
+			// Prevent sending the keymsgs to the chat window components if no contact selected
 			switch {
-			case key.Matches(msg, m.listKeys.toggleSpinner):
-				cmd := m.list.ToggleSpinner()
-				return m, cmd
-
-			case key.Matches(msg, m.listKeys.toggleTitleBar):
-				v := !m.list.ShowTitle()
-				m.list.SetShowTitle(v)
-				m.list.SetShowFilter(v)
-				m.list.SetFilteringEnabled(v)
-				return m, nil
-
-			case key.Matches(msg, m.listKeys.toggleStatusBar):
-				m.list.SetShowStatusBar(!m.list.ShowStatusBar())
-				return m, nil
 
 			case key.Matches(msg, m.listKeys.togglePagination):
 				m.list.SetShowPagination(!m.list.ShowPagination())
@@ -181,6 +163,9 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			switch {
 			case key.Matches(msg, m.listKeys.clearSelection):
 				return m.ClearSelection(), nil
+
+			case key.Matches(msg, m.chatKeys.send):
+				return m.SendMessage(m.textarea.Value()), nil
 			}
 
 			newViewport, vpCmd := m.viewport.Update(msg)
@@ -248,6 +233,42 @@ func (m model) ClearSelection() model {
 
 func (m model) Selected() contact {
 	return m.selected
+}
+
+func (m model) SendMessage(message string) model {
+	// fmt.Printf(message)
+	m.messages = append(m.messages, cachedMessage{Content: message, MessageType: Outgoing})
+
+	var formattedMessages string
+	for i := range m.messages {
+		formattedMessages += DrawMessage(m.messages[i], m.viewport.Width)
+	}
+
+	if len(m.messages) > 0 {
+		// Wrap content before setting it.
+		m.viewport.SetContent(lipgloss.NewStyle().Width(m.viewport.Width).Render(formattedMessages))
+	}
+
+	m.textarea.SetValue("")
+
+	return m
+}
+
+func DrawMessage(message cachedMessage, viewportWidth int) string {
+	var position lipgloss.Position
+	var color string
+	switch message.MessageType {
+	case Outgoing:
+		position = lipgloss.Left
+		color = "28"
+	case Incoming:
+		position = lipgloss.Right
+		color = "255"
+	}
+
+	bubble := bubbleStyle.BorderForeground(lipgloss.Color(color)).Width(min(lipgloss.Width(message.Content)+2, viewportWidth*3/4)).Render(message.Content)
+
+	return lipgloss.PlaceHorizontal(viewportWidth, position, bubble)
 }
 
 func Start() {
