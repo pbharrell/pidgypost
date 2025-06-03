@@ -82,7 +82,7 @@ func Update(keys *listItemDelegateKeyMap, msg tea.Msg, m *list.Model) tea.Cmd {
 }
 
 func newListItemDelegate(keys *listItemDelegateKeyMap) list.DefaultDelegate {
-	f, err := os.OpenFile("debug.log", os.O_RDWR|os.O_CREATE|os.O_APPEND, 0666)
+	f, err := os.OpenFile("delegate.log", os.O_RDWR|os.O_CREATE|os.O_APPEND, 0666)
 	if err != nil {
 		panic(err)
 	}

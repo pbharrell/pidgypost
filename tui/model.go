@@ -181,13 +181,6 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 }
 
 func (m model) View() string {
-	// return fmt.Sprintf(
-	// 	"%s%s%s",
-	// 	m.viewport.View(),
-	// 	gap,
-	// 	m.textarea.View(),
-	// )
-
 	// Get total width, divide it evenly
 	listWidth := m.list.Width()
 	chatWidth := m.viewport.Width
@@ -210,14 +203,6 @@ func (m model) View() string {
 		chatStyle.Render(chatPanel),
 	)
 
-	// selected := m.Selected()
-	// if selected == emptyContact {
-	// 	return lipgloss.JoinVertical(lipgloss.Top, appStyle.Render(ui), lipgloss.NewStyle().Foreground(lipgloss.Color("#888")).Render("No selection :("))
-	// } else {
-	// 	return lipgloss.JoinVertical(lipgloss.Top, appStyle.Render(ui), selected.Title())
-	// }
-
-	// return lipgloss.JoinVertical(lipgloss.Top, appStyle.Render(ui), lipgloss.NewStyle().Foreground(lipgloss.Color("#888")).Render("No selection :("))
 	return lipgloss.JoinVertical(lipgloss.Top, appStyle.Render(ui))
 }
 
@@ -236,7 +221,6 @@ func (m model) Selected() contact {
 }
 
 func (m model) SendMessage(message string) model {
-	// fmt.Printf(message)
 	m.messages = append(m.messages, cachedMessage{Content: message, MessageType: Outgoing})
 
 	var formattedMessages string
